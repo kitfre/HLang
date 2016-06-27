@@ -24,7 +24,7 @@ data HVal
     | Sum [HVal]
     | Mul [HVal]
     | Index HVal Int
-    | Elem HVal [HVal]
+    | Elem HVal HVal
     | Assign [HVal] Int HVal
     | Concat HVal HVal
     | Comp String HVal
@@ -86,6 +86,12 @@ parseExpr = parseNumber
                 x <- parseIf
                 char ']'
                 return x
+         <|> do char '?'
+                x <- parseExpr
+                char '['
+                y <- parseList
+                char ']'
+                return (Elem x y)
          <|> parseAtom
          <|> parseString
          <|> do char '['

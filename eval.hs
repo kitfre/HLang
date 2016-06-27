@@ -46,7 +46,7 @@ reduceExpr expr = case expr of
     Bool b        -> Bool b
     Init i        -> Init i
     Index xs i    -> reduceExpr ((snagList xs) !! i)
-    Elem i xs     -> Elem i xs
+    Elem i xs     -> Bool $ elem i (snagList xs)
     Assign xs i h -> Assign xs i h
     Number i      -> Number i
     If lst        -> if (length lst == 3 && (reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)
