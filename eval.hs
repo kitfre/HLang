@@ -50,15 +50,43 @@ reduceExpr expr = case expr of
     Elem i xs     -> Bool $ elem i (snagList xs)
     Assign xs i h -> Assign xs i h
     Number i      -> Number i
-    If lst        -> if (length lst == 3 && (reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)
+    If lst        -> if (length lst == 3) then (if ((reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
     Comp c lst    -> comp c $ map snagNum (snagList lst)
     
-runExpr :: String -> String
+runExpr :: String -> HVal
 runExpr str = case readExpr str of
-    Just expr -> show (reduceExpr expr)
-    Nothing -> "Cannot parse expression"
+    Just expr -> reduceExpr expr
+    Nothing -> Error "Cannot parse expression"
+
+prettyPrint :: HVal -> IO ()
+prettyPrint val = case val of
+    Atom a      -> putStrLn a
+    Number i    -> putStrLn $ show i
+    Bool t      -> putStrLn $ show t
+    HList lst   -> do
+                     putStr "[ "
+                     printList lst
+
+printList :: [HVal] -> IO ()
+printList [] = putStrLn "]"
+printList (x:xs) = case x of 
+    Atom a    -> do
+                   putStr a
+                   putStr " "
+                   printList xs
+    Number i  -> do
+                   putStr $ show i
+                   putStr " "
+                   printList xs
+    Bool t    -> do
+                   putStr $ show t
+                   putStr " "
+                   printList xs
+    HList lst -> do
+                   putStr "[ "
+                   printList lst
 
 interp :: IO ()
 interp = forever $ do
                      x <- readLn
-                     putStrLn (runExpr x)
+                     prettyPrint $ runExpr x
