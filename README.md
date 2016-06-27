@@ -16,7 +16,7 @@ Let a, b be lists.
 
 ++ab : concatenate a b
 
-if [bool a b] : if statement
+if[bool a b] : if statement
 
 ==[1 2] : comparators, including <, >, <=, >=, ==
 
