@@ -12,11 +12,28 @@ snagNum i = case i of
             Number x -> x
             _        -> error "Not a number"
 
+-- gets strings out of Strings
+snagStr :: HVal -> String
+snagStr s = case s of
+            String s -> s
+            _        -> error "Not a string"
+
 -- gets list
 snagList :: HVal -> [HVal]
 snagList lst = case lst of
     HList elems -> elems 
     _           -> error "Not a list"
+
+-- comparison helper
+comp :: (Ord a) => String -> [a] -> HVal
+comp c lst = case c of
+    "<"   -> Bool (one < two)
+    ">"   -> Bool (one > two)
+    "<="  -> Bool (one <= two)
+    ">="  -> Bool (one >= two)
+    "=="  -> Bool (one == two)
+    where one = head lst
+          two = head $ tail lst
 
 -- reduce functions for H
 reduceExpr :: HVal -> HVal
@@ -33,6 +50,7 @@ reduceExpr expr = case expr of
     Assign xs i h -> Assign xs i h
     Number i      -> Number i
     If lst        -> if (length lst == 3 && (reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)
+    Comp c lst    -> comp c $ map snagNum (snagList lst)
     
 runExpr :: String -> String
 runExpr str = case readExpr str of

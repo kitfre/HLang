@@ -27,6 +27,7 @@ data HVal
     | Elem HVal [HVal]
     | Assign [HVal] Int HVal
     | Concat HVal HVal
+    | Comp String HVal
     | If [HVal]
     | Error String
     deriving (Show, Eq)
@@ -76,6 +77,8 @@ parseString = do
                 char '"'
                 return $ String x
 
+comps = string "<" <|> string ">" <|> string "=" <|> string "~=" <|> string ">=" <|> string "<="
+
 parseExpr :: Parser HVal
 parseExpr = parseNumber
          <|> parseInit
@@ -89,6 +92,11 @@ parseExpr = parseNumber
                 x <- parseList
                 char ']'
                 return x
+         <|> do c <- comps
+                char '['
+                x <- parseList
+                char ']'
+                return (Comp c x)
          <|> do char '+'
                 try (do 
                      char '+'
@@ -104,14 +112,6 @@ parseExpr = parseNumber
                      x <- parseSum
                      char ']'
                      return x)
-         <|> do string "<>"
-                char '['
-                x <- parseList
-                char ']'
-                char '['
-                y <- parseList
-                char ']'
-                return (Concat x y)
          <|> do char '*'
                 char '['
                 x <- parseMul
