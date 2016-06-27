@@ -32,6 +32,7 @@ comp c lst = case c of
     "<="  -> Bool (one <= two)
     ">="  -> Bool (one >= two)
     "=="  -> Bool (one == two)
+    "~="  -> Bool (one /= two)
     where one = head lst
           two = head $ tail lst
 
