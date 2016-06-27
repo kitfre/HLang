@@ -18,6 +18,6 @@ Let a, b be lists.
 
 if [bool a b] : if statement
 
->[1 2] : comparators, including <, >, <=, >=, ==
+==[1 2] : comparators, including <, >, <=, >=, ==
 
 
