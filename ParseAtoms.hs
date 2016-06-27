@@ -27,6 +27,7 @@ data HVal
     | Elem HVal [HVal]
     | Assign [HVal] Int HVal
     | Concat HVal HVal
+    | If [HVal]
     | Error String
     deriving (Show, Eq)
 
@@ -65,6 +66,9 @@ parseSum = liftM Sum $ sepBy parseExpr spaces
 parseMul :: Parser HVal
 parseMul = liftM Mul $ sepBy parseExpr spaces
 
+parseIf :: Parser HVal
+parseIf = liftM If $ sepBy parseExpr spaces
+
 parseString :: Parser HVal
 parseString = do
                 char  '"'
@@ -73,10 +77,14 @@ parseString = do
                 return $ String x
 
 parseExpr :: Parser HVal
-parseExpr = parseAtom
-         <|> parseString
-         <|> parseNumber
+parseExpr = parseNumber
          <|> parseInit
+         <|> do string "if["
+                x <- parseIf
+                char ']'
+                return x
+         <|> parseAtom
+         <|> parseString
          <|> do char '['
                 x <- parseList
                 char ']'

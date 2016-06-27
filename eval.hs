@@ -1,3 +1,5 @@
+module EvalH where
+
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Data.Char
@@ -29,11 +31,15 @@ reduceExpr expr = case expr of
     Index xs i    -> reduceExpr ((snagList xs) !! i)
     Elem i xs     -> Elem i xs
     Assign xs i h -> Assign xs i h
-    Number i      -> HList [Number i]
-    Concat xs ys  -> HList $ (snagList xs) ++ (snagList ys)
-
+    Number i      -> Number i
+    If lst        -> if (length lst == 3 && (reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)
+    
 runExpr :: String -> String
 runExpr str = case readExpr str of
     Just expr -> show (reduceExpr expr)
     Nothing -> "Cannot parse expression"
-            
+
+interp :: IO ()
+interp = forever $ do
+                     x <- readLn
+                     putStrLn (runExpr x)
