@@ -3,6 +3,7 @@ module ParseAtoms where
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Data.Char
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as Map
 
 
@@ -16,7 +17,7 @@ import qualified Data.Map as Map
 
 data HVal 
     = Atom String
-    | Function String [String] String
+    | Function String [String] HVal
     | Application String [String]
     | HList [HVal]
     | Number Int
@@ -87,7 +88,7 @@ parseExpr = parseNumber
                 args <- (endBy1 (many1 (noneOf " .\\()")) spaces)
                 char '.'
                 spaces
-                body <- many1 (noneOf "]")
+                body <- parseExpr
                 char ']'
                 return (Function name args body)
          <|> do string "if["
@@ -144,3 +145,13 @@ readExpr :: String -> Maybe HVal
 readExpr input = case parse parseExpr "hvals" input of
     Left err -> Nothing
     Right val -> Just val
+
+parseFile :: FilePath -> Context
+parseFile f = buildContext  Map.empty (lines $ unsafePerformIO $ readFile f)
+
+buildContext :: Context -> [String] -> Context
+buildContext m []     = m
+buildContext m (x:xs) = buildContext (Map.insert x res m) xs
+    where res = case readExpr x of
+                    Just h  -> h
+                    Nothing -> Error "no parse"
