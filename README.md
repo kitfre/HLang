@@ -20,4 +20,6 @@ if[bool a b] : if statement
 
 ==[1 2] : comparators, including <, >, <=, >=, ==
 
+->f[x . x+1] : defines a function f that takes a single parameter and increments it
 
+f[1] : function application

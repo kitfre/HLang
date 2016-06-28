@@ -39,19 +39,21 @@ comp c lst = case c of
 -- reduce functions for H
 reduceExpr :: HVal -> HVal
 reduceExpr expr = case expr of
-    Atom x        -> Atom x
-    HList xs      -> HList $ map reduceExpr xs
-    Sum xs        -> Number $ foldl (+) 0 $ map (snagNum . reduceExpr) xs
-    Mul xs        -> Number $ foldl (*) 1 $ map (snagNum . reduceExpr) xs
-    String s      -> String s
-    Bool b        -> Bool b
-    Init i        -> Init i
-    Index xs i    -> reduceExpr ((snagList xs) !! i)
-    Elem i xs     -> Bool $ elem i (snagList xs)
-    Assign xs i   -> Assign xs i 
-    Number i      -> Number i
-    If lst        -> if (length lst == 3) then (if ((reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
-    Comp c lst    -> comp c $ map snagNum (snagList lst)
+    Atom x                  -> Atom x
+    HList xs                -> HList $ map reduceExpr xs
+    Sum xs                  -> Number $ foldl (+) 0 $ map (snagNum . reduceExpr) xs
+    Mul xs                  -> Number $ foldl (*) 1 $ map (snagNum . reduceExpr) xs
+    String s                -> String s
+    Bool b                  -> Bool b
+    Init i                  -> Init i
+    Index xs i              -> reduceExpr ((snagList xs) !! i)
+    Elem i xs               -> Bool $ elem i (snagList xs)
+    Assign xs i             -> Assign xs i 
+    Number i                -> Number i
+    If lst                  -> if (length lst == 3) then (if ((reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
+    Comp c lst              -> comp c $ map snagNum (snagList lst)
+    Function name args body -> Function name args body
+    Application name args   -> Application name args
     
 runExpr :: String -> HVal
 runExpr str = case readExpr str of
@@ -60,12 +62,16 @@ runExpr str = case readExpr str of
 
 prettyPrint :: HVal -> IO ()
 prettyPrint val = case val of
-    Atom a      -> putStrLn a
-    Number i    -> putStrLn $ show i
-    Bool t      -> putStrLn $ show t
-    HList lst   -> do
-                     putStr "[ "
-                     printList lst
+    Function name args body -> do
+                                putStr (name ++ ": ")
+                                putStr ((show args) ++ ", ")
+                                putStr (body ++ "\n")
+    Atom a                  -> putStrLn a
+    Number i                -> putStrLn $ show i
+    Bool t                  -> putStrLn $ show t
+    HList lst               -> do
+                                putStr "[ "
+                                printList lst
 
 printList :: [HVal] -> IO ()
 printList [] = putStrLn "]"

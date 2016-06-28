@@ -16,7 +16,8 @@ import qualified Data.Map as Map
 
 data HVal 
     = Atom String
-    | Function String HVal
+    | Function String [String] String
+    | Application String [String]
     | HList [HVal]
     | Number Int
     | String String
@@ -79,6 +80,16 @@ comps = string "<" <|> string ">" <|> string "=" <|> string "~=" <|> string ">="
 parseExpr :: Parser HVal
 parseExpr = parseNumber
          <|> parseInit
+         <|> do string "->"
+                name <- many1 (noneOf "[")
+                char '['
+                spaces
+                args <- (endBy1 (many1 (noneOf " .\\()")) spaces)
+                char '.'
+                spaces
+                body <- many1 (noneOf "]")
+                char ']'
+                return (Function name args body)
          <|> do string "if["
                 x <- parseIf
                 char ']'
