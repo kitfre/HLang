@@ -3,7 +3,7 @@ module ParseAtoms where
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Data.Char
-
+import qualified Data.Map as Map
 
 
 -- init: a = (int)
@@ -11,11 +11,12 @@ import Data.Char
 -- prod: a*
 -- concat: a ++ b
 -- index: a!int
--- assign: a!int <- elem
+-- assign: f<-[\x -> f(x)]
 -- element?: a?elem 
 
 data HVal 
     = Atom String
+    | Function String HVal
     | HList [HVal]
     | Number Int
     | String String
@@ -25,7 +26,7 @@ data HVal
     | Mul [HVal]
     | Index HVal Int
     | Elem HVal HVal
-    | Assign [HVal] Int HVal
+    | Assign String HVal
     | Concat HVal HVal
     | Comp String HVal
     | If [HVal]
@@ -56,10 +57,6 @@ parseInit = do
 
 parseList :: Parser HVal
 parseList = liftM HList $ sepBy parseExpr spaces
-
--- parse operators
---parseOps :: Parser HVal
---parseOps = parseSum <|> parseMul
 
 parseSum :: Parser HVal
 parseSum = liftM Sum $ sepBy parseExpr spaces 
@@ -129,6 +126,8 @@ parseExpr = parseNumber
                 x <- parseList
                 char ']'
                 return (Index x (digitToInt i))
+
+type Context = Map.Map String HVal
 
 readExpr :: String -> Maybe HVal
 readExpr input = case parse parseExpr "hvals" input of

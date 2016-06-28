@@ -41,14 +41,14 @@ reduceExpr :: HVal -> HVal
 reduceExpr expr = case expr of
     Atom x        -> Atom x
     HList xs      -> HList $ map reduceExpr xs
-    Sum xs        -> HList [Number $ foldl (+) 0 $ map snagNum xs]
-    Mul xs        -> HList [Number $ foldl (*) 1 $ map snagNum xs]
+    Sum xs        -> Number $ foldl (+) 0 $ map (snagNum . reduceExpr) xs
+    Mul xs        -> Number $ foldl (*) 1 $ map (snagNum . reduceExpr) xs
     String s      -> String s
     Bool b        -> Bool b
     Init i        -> Init i
     Index xs i    -> reduceExpr ((snagList xs) !! i)
     Elem i xs     -> Bool $ elem i (snagList xs)
-    Assign xs i h -> Assign xs i h
+    Assign xs i   -> Assign xs i 
     Number i      -> Number i
     If lst        -> if (length lst == 3) then (if ((reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
     Comp c lst    -> comp c $ map snagNum (snagList lst)
