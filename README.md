@@ -22,4 +22,4 @@ if[bool a b] : if statement
 
 ->f[x . x+1] : defines a function f that takes a single parameter and increments it
 
-f[1] : function application
+'f[1] : function application
