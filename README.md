@@ -1,5 +1,6 @@
 # HLang
 A little list based programming langauge inspired by languages like J written in Haskell.
+Meant to be silly, and still very much a work in progress!
 
 Basic syntax:
 [1 2 3] : a list
