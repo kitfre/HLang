@@ -1,10 +1,12 @@
 module EvalH where
 
+import qualified Data.Map as Map
 import Control.Monad
+import Data.String.Utils (replace)
 import Text.ParserCombinators.Parsec
 import Data.Char
 import ParseAtoms 
-
+import Data.List.Split (splitOn)
 
 -- gets numbers out of Numbers
 snagNum :: HVal -> Int
@@ -37,35 +39,46 @@ comp c lst = case c of
           two = head $ tail lst
 
 -- reduce functions for H
-reduceExpr :: HVal -> HVal
-reduceExpr expr = case expr of
+reduceExpr :: Context -> HVal -> HVal
+reduceExpr cont expr = case expr of
     Atom x                  -> Atom x
-    HList xs                -> HList $ map reduceExpr xs
-    Sum xs                  -> Number $ foldl (+) 0 $ map (snagNum . reduceExpr) xs
-    Mul xs                  -> Number $ foldl (*) 1 $ map (snagNum . reduceExpr) xs
+    HList xs                -> HList $ map (reduceExpr cont) xs
+    Sum xs                  -> Number $ foldl (+) 0 $ map (snagNum . (reduceExpr cont)) xs
+    Mul xs                  -> Number $ foldl (*) 1 $ map (snagNum . (reduceExpr cont)) xs
     String s                -> String s
     Bool b                  -> Bool b
     Init i                  -> Init i
-    Index xs i              -> reduceExpr ((snagList xs) !! i)
+    Index xs i              -> reduceExpr cont ((snagList xs) !! i)
     Elem i xs               -> Bool $ elem i (snagList xs)
     Assign xs i             -> Assign xs i 
     Number i                -> Number i
-    If lst                  -> if (length lst == 3) then (if ((reduceExpr $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
+    If lst                  -> if (length lst == 3) then (if (((reduceExpr cont) $ head lst) == Bool True) then (lst !! 1) else (lst !! 2)) else Error "incorrect list size for if conditional"
     Comp c lst              -> comp c $ map snagNum (snagList lst)
     Function name args body -> Function name args body
-    Application name args   -> Application name args
-    
-runExpr :: String -> HVal
-runExpr str = case readExpr str of
-    Just expr -> reduceExpr expr
-    Nothing -> Error "Cannot parse expression"
+    Application name args   -> evalApp cont (Map.lookup name cont) args
+
+evalApp :: Context -> Maybe HVal -> [String] -> HVal
+evalApp cont fn params = case fn of
+    Just (Function name args body) -> runExpr (replace' (zip args params) args body "") cont
+    Nothing -> Error "No parse"
+
+replace' :: [([Char], [Char])] -> [String] -> String -> String -> String
+replace' _ _ [] new       = new
+replace' xs args (s:ss) new 
+    |  elem [s] args      = replace' xs args ss (new ++ (get xs [s]))
+    |  otherwise          = replace' xs args ss (new ++ [s])
+    where get [] _      = ""
+          get (x:xs) s  
+            | s == (fst x) = snd x
+            | otherwise    = get xs s
+
+runExpr:: String -> Context -> HVal
+runExpr str cont = case readExpr str of
+    Just expr -> reduceExpr cont expr
+    Nothing -> Error str
 
 prettyPrint :: HVal -> IO ()
 prettyPrint val = case val of
-    Function name args body -> do
-                                putStr (name ++ ": ")
-                                putStr ((show args) ++ ", ")
-                                putStr (body ++ "\n")
     Atom a                  -> putStrLn a
     Number i                -> putStrLn $ show i
     Bool t                  -> putStrLn $ show t
@@ -91,8 +104,3 @@ printList (x:xs) = case x of
     HList lst -> do
                    putStr "[ "
                    printList lst
-
-interp :: IO ()
-interp = forever $ do
-                     x <- readLn
-                     prettyPrint $ runExpr x

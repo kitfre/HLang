@@ -3,6 +3,7 @@ module ParseAtoms where
 import Control.Monad
 import Text.ParserCombinators.Parsec
 import Data.Char
+import Data.List.Split (splitOn)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Map as Map
 
@@ -17,7 +18,7 @@ import qualified Data.Map as Map
 
 data HVal 
     = Atom String
-    | Function String [String] HVal
+    | Function String [String] String
     | Application String [String]
     | HList [HVal]
     | Number Int
@@ -81,6 +82,13 @@ comps = string "<" <|> string ">" <|> string "=" <|> string "~=" <|> string ">="
 parseExpr :: Parser HVal
 parseExpr = parseNumber
          <|> parseInit
+         <|> do char '\''
+                name <- many1 (noneOf "[")
+                char '['
+                spaces
+                args <- many1 (noneOf "]")
+                char ']'
+                return (Application name (splitOn " " args))
          <|> do string "->"
                 name <- many1 (noneOf "[")
                 char '['
@@ -88,9 +96,9 @@ parseExpr = parseNumber
                 args <- (endBy1 (many1 (noneOf " .\\()")) spaces)
                 char '.'
                 spaces
-                body <- parseExpr
+                body <- many1 (noneOf "]")
                 char ']'
-                return (Function name args body)
+                return (Function name args (body ++ "]"))
          <|> do string "if["
                 x <- parseIf
                 char ']'
@@ -151,7 +159,11 @@ parseFile f = buildContext  Map.empty (lines $ unsafePerformIO $ readFile f)
 
 buildContext :: Context -> [String] -> Context
 buildContext m []     = m
-buildContext m (x:xs) = buildContext (Map.insert x res m) xs
-    where res = case readExpr x of
-                    Just h  -> h
-                    Nothing -> Error "no parse"
+buildContext m (x:xs) = let res = case readExpr x of 
+                                    Just h -> h
+                                    Nothing -> Error "no parse"
+                        in
+                            case res of
+                                Atom a          -> buildContext (Map.insert a res m) xs 
+                                Function n a b  -> buildContext (Map.insert n res m) xs
+                                _               -> buildContext m xs
