@@ -27,6 +27,7 @@ data HVal
     | Init Int
     | Sum [HVal]
     | Mul [HVal]
+    | Minus [HVal]
     | Index HVal Int
     | Elem HVal HVal
     | Assign String HVal
@@ -67,6 +68,9 @@ parseSum = liftM Sum $ sepBy parseExpr spaces
 parseMul :: Parser HVal
 parseMul = liftM Mul $ sepBy parseExpr spaces
 
+parseMinus :: Parser HVal
+parseMinus = liftM Minus $ sepBy parseExpr spaces
+
 parseIf :: Parser HVal
 parseIf = liftM If $ sepBy parseExpr spaces
 
@@ -89,16 +93,17 @@ parseExpr = parseNumber
                 args <- many1 (noneOf "]")
                 char ']'
                 return (Application name (splitOn " " args))
-         <|> do string "->"
-                name <- many1 (noneOf "[")
-                char '['
-                spaces
-                args <- (endBy1 (many1 (noneOf " .\\()")) spaces)
-                char '.'
-                spaces
-                body <- many1 (noneOf "]")
-                char ']'
-                return (Function name args (body ++ "]"))
+         <|> try  (do 
+                    string "->" 
+                    name <- many1 (noneOf "[")
+                    char '['
+                    spaces
+                    args <- (endBy1 (many1 (noneOf " .\\()")) spaces)
+                    char '.'
+                    spaces
+                    body <- many1 (noneOf "]")
+                    char ']'
+                    return (Function name args (body ++ "]")))
          <|> do string "if["
                 x <- parseIf
                 char ']'
@@ -109,8 +114,6 @@ parseExpr = parseNumber
                 y <- parseList
                 char ']'
                 return (Elem x y)
-         <|> parseAtom
-         <|> parseString
          <|> do char '['
                 x <- parseList
                 char ']'
@@ -140,17 +143,24 @@ parseExpr = parseNumber
                 x <- parseMul
                 char ']'
                 return x
+         <|> do char '-'
+                char '['
+                x <- parseMinus
+                char ']'
+                return x
          <|> do char '!'
                 i <- digit
                 char '['
                 x <- parseList
                 char ']'
                 return (Index x (digitToInt i))
+         <|> parseAtom
+         <|> parseString
 
 type Context = Map.Map String HVal
 
 readExpr :: String -> Maybe HVal
-readExpr input = case parse parseExpr "hvals" input of
+readExpr input = case parse parseExpr "hlang" input of
     Left err -> Nothing
     Right val -> Just val
 
